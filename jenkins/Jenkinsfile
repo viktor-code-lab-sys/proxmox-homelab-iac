@@ -1,0 +1,59 @@
+// Idempotent node_exporter rollout to service VMs over SSH.
+// Credentials (Jenkins store): jenkins-automation-key (SSH key), harbor-robot-secret (secret text).
+pipeline {
+    agent any
+    parameters {
+        string(name: 'NODE_EXPORTER_VERSION', defaultValue: 'v1.8.2')
+        string(name: 'REGISTRY', defaultValue: 'registry.homelab.example')
+    }
+    stages {
+        stage('Install node_exporter on VMs') {
+            steps {
+                withCredentials([string(credentialsId: 'harbor-robot-secret', variable: 'ROBOT_SECRET')]) {
+                    sshagent(credentials: ['jenkins-automation-key']) {
+                        script {
+                            def hosts = readFile('jenkins/hosts/node-exporter.txt').readLines().findAll { it.trim() && !it.startsWith('#') }
+                            // GitLab Omnibus runs its own exporter on 127.0.0.1:9100.
+                            def portOverrides = readJSON(text: readFile('jenkins/hosts/port-overrides.json'))
+
+                            hosts.each { host ->
+                                def port = portOverrides.get(host, '9100')
+                                def listenArg = (port == '9100') ? '' : "--web.listen-address=:${port}"
+                                // Values reach the shell as environment variables, never through
+                                // Groovy string interpolation, so the secret is not exposed.
+                                withEnv(["TARGET_HOST=${host}", "LISTEN_ARG=${listenArg}", "TARGET_PORT=${port}"]) {
+                                    sh '''
+                                        set -e
+                                        # Settings travel on stdin ahead of the script, so the
+                                        # secret never shows up in a process list.
+                                        {
+                                          printf "export ROBOT_SECRET='%s' REGISTRY='%s' VERSION='%s' LISTEN_ARG='%s' PORT='%s'\\n" \\
+                                            "$ROBOT_SECRET" "$REGISTRY" "$NODE_EXPORTER_VERSION" "$LISTEN_ARG" "$TARGET_PORT"
+                                          cat jenkins/install-node-exporter.sh
+                                        } | ssh -o StrictHostKeyChecking=accept-new "admin@${TARGET_HOST}" bash -s
+                                    '''
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('Verify') {
+            steps {
+                script {
+                    def hosts = readFile('jenkins/hosts/node-exporter.txt').readLines().findAll { it.trim() && !it.startsWith('#') }
+                    def portOverrides = readJSON(text: readFile('jenkins/hosts/port-overrides.json'))
+                    def failed = []
+                    hosts.each { host ->
+                        def port = portOverrides.get(host, '9100')
+                        def rc = sh(returnStatus: true, script: "curl -sf http://${host}:${port}/metrics > /dev/null")
+                        echo "${host}:${port}: ${rc == 0 ? 'OK' : 'FAILED'}"
+                        if (rc != 0) { failed << host }
+                    }
+                    if (failed) { error("node_exporter not reachable on: ${failed.join(', ')}") }
+                }
+            }
+        }
+    }
+}

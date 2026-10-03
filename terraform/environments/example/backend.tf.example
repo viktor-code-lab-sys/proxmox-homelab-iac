@@ -1,0 +1,12 @@
+# GitLab-managed Terraform state. Copy to backend.tf (git-ignored).
+# Credentials come from -backend-config flags or TF_HTTP_USERNAME / TF_HTTP_PASSWORD.
+terraform {
+  backend "http" {
+    address        = "https://gitlab.homelab.example/api/v4/projects/<PROJECT_ID>/terraform/state/homelab"
+    lock_address   = "https://gitlab.homelab.example/api/v4/projects/<PROJECT_ID>/terraform/state/homelab/lock"
+    unlock_address = "https://gitlab.homelab.example/api/v4/projects/<PROJECT_ID>/terraform/state/homelab/lock"
+    lock_method    = "POST"
+    unlock_method  = "DELETE"
+    retry_wait_min = 5
+  }
+}

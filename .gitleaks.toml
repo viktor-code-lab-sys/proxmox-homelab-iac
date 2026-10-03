@@ -1,0 +1,11 @@
+title = "proxmox-homelab gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented placeholders"
+regexes = [
+  '''<[A-Za-z0-9_ -]+>''',
+  '''CHANGE_ME''',
+]

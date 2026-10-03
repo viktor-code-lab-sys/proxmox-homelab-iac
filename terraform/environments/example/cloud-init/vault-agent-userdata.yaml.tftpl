@@ -1,0 +1,10 @@
+#cloud-config
+# Rendered per VM by Terraform. The Vault Agent baked into the template reads the
+# secret_id once (remove_secret_id_file_after_reading = true) and deletes the file.
+write_files:
+  - path: /etc/vault-agent/secret-id
+    permissions: '0600'
+    owner: root:root
+    content: "${secret_id}"
+runcmd:
+  - systemctl restart vault-agent

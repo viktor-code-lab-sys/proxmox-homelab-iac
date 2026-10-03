@@ -1,0 +1,6 @@
+# One FQDN per line; lines starting with # are ignored.
+gitlab.homelab.example
+registry.homelab.example
+jenkins.homelab.example
+vault.homelab.example
+atlantis.homelab.example

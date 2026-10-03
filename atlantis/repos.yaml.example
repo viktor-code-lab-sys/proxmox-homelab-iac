@@ -1,0 +1,33 @@
+# Server-side Atlantis config (--repo-config). Lives on the Atlantis host, not in the repo.
+repos:
+  - id: /.*/
+    workflow: vault-injected
+    allowed_overrides: [workflow]
+    allow_custom_workflows: true
+
+# Every step runs in its own process, so variables exported in one step never reach
+# the next one. init and plan/apply therefore share a single run block. Backend
+# credentials go in as -backend-config flags: the version wrapper Atlantis puts
+# around terraform does not reliably pass TF_HTTP_* through.
+workflows:
+  vault-injected:
+    plan:
+      steps:
+        - run: |
+            set -a
+            . /atlantis-data/tf-secrets.env
+            set +a
+            terraform init -input=false -reconfigure \
+              -backend-config="username=$TF_HTTP_USERNAME" \
+              -backend-config="password=$TF_HTTP_PASSWORD"
+            terraform plan -input=false -out=$PLANFILE
+    apply:
+      steps:
+        - run: |
+            set -a
+            . /atlantis-data/tf-secrets.env
+            set +a
+            terraform init -input=false -reconfigure \
+              -backend-config="username=$TF_HTTP_USERNAME" \
+              -backend-config="password=$TF_HTTP_PASSWORD"
+            terraform apply -input=false $PLANFILE

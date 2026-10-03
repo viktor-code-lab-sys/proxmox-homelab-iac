@@ -1,0 +1,40 @@
+# Copy to terraform.tfvars (git-ignored) and adjust. Secrets never go here:
+# pass them as TF_VAR_proxmox_api_token / TF_VAR_fortigate_api_token and VAULT_TOKEN.
+
+proxmox_endpoint             = "https://pve.homelab.example:8006"
+proxmox_ssh_private_key_path = "/root/.ssh/id_ed25519"
+proxmox_node_name            = "pve"
+proxmox_node_address         = "10.0.72.10"
+template_vm_id               = 194
+datastore_id                 = "datastore"
+vlan_id                      = 104
+
+fortigate_hostname       = "fw.homelab.example:14443"
+fortigate_ca_bundle_path = "full-ca-chain.pem"
+fortigate_dhcp_vdom      = "lab"
+dhcp_server_id           = 6
+dhcp_interface           = "LAB_VLAN104"
+dhcp_range               = { start = "10.0.104.100", end = "10.0.104.200" }
+dns_zone_name            = "internal"
+
+domain      = "homelab.example"
+subnet_cidr = "10.0.104.0/24"
+dns_server  = "10.0.0.53"
+vault_addr  = "https://vault.homelab.example:8200"
+
+# Records created by hand before Terraform. Keep the real lists in a private
+# legacy.auto.tfvars file (git-ignored).
+legacy_reservations = [
+  { ip = "10.0.104.11", mac = "BC:24:11:00:00:0B", description = "gitlab" },
+]
+legacy_dns_entries = [
+  { hostname = "gitlab", ip = "10.0.104.11" },
+]
+
+vms = {
+  "app-01" = {
+    vmid       = 120
+    host_index = 18
+    memory_mb  = 4096
+  }
+}

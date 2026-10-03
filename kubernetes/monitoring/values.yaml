@@ -1,0 +1,92 @@
+# kube-prometheus-stack 66.2.1 behind an air-gapped registry.
+# Do NOT use global.imageRegistry: it rewrites every image, including those that are
+# not published on quay.io (kube-state-metrics lives on registry.k8s.io).
+# Always split registry and repository: a single-string repository gets a docker.io/ prefix.
+prometheus:
+  prometheusSpec:
+    image:
+      registry: registry.homelab.example
+      repository: quay-proxy/prometheus/prometheus
+    retention: 30d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 50Gi
+    additionalScrapeConfigs:
+      - job_name: vm-node-exporters
+        static_configs:
+          - targets:
+              - gitlab.homelab.example:9101   # GitLab Omnibus owns 127.0.0.1:9100
+              - registry.homelab.example:9100
+              - jenkins.homelab.example:9100
+              - vault.homelab.example:9100
+              - atlantis.homelab.example:9100
+
+prometheusOperator:
+  image:
+    registry: registry.homelab.example
+    repository: quay-proxy/prometheus-operator/prometheus-operator
+  prometheusConfigReloader:
+    image:
+      registry: registry.homelab.example
+      repository: quay-proxy/prometheus-operator/prometheus-config-reloader
+  # Must be off when admission webhooks are off, otherwise the operator waits forever
+  # for a TLS secret that only the webhook job creates.
+  tls:
+    enabled: false
+  admissionWebhooks:
+    enabled: false
+    patch:
+      enabled: false
+
+grafana:
+  image:
+    registry: registry.homelab.example
+    repository: dockerhub-proxy/grafana/grafana
+  persistence:
+    enabled: true
+    storageClassName: local-path
+    size: 10Gi
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: vault-issuer
+    hosts:
+      - grafana.homelab.example
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - grafana.homelab.example
+
+alertmanager:
+  alertmanagerSpec:
+    image:
+      registry: registry.homelab.example
+      repository: quay-proxy/prometheus/alertmanager
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+
+prometheus-node-exporter:
+  image:
+    registry: registry.homelab.example
+    repository: quay-proxy/prometheus/node-exporter
+
+kube-state-metrics:
+  image:
+    registry: registry.homelab.example
+    repository: k8s-proxy/kube-state-metrics/kube-state-metrics

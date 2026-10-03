@@ -1,0 +1,34 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+terraform.tfvars
+*.auto.tfvars
+backend.tf
+
+# Secrets and key material
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.env
+tf-secrets.env
+secret-id
+role-id
+
+# Private exports of existing network state
+legacy*.json
+state.json
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store

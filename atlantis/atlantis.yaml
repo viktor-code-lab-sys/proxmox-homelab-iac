@@ -1,0 +1,7 @@
+# Repo-level config. The workflow name must exist on the server side (repos.yaml),
+# and the server must allow overrides: allowed_overrides: [workflow].
+version: 3
+projects:
+  - name: homelab
+    dir: terraform/environments/example
+    workflow: vault-injected

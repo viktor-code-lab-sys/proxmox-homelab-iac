@@ -1,0 +1,12 @@
+[Unit]
+Description=Vault Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/vault agent -config=/etc/vault-agent/agent.hcl
+Restart=on-failure
+Environment=VM_FQDN=%H.homelab.example
+
+[Install]
+WantedBy=multi-user.target
